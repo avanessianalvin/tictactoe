@@ -1,5 +1,8 @@
 package com.voznoi.app;
 
+import com.voznoi.app.ai.CheckResult;
+import com.voznoi.app.ai.Result;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -10,19 +13,23 @@ import java.util.Timer;
 
 public class App {
     public static Map<Integer,JLabel> labelMap = new HashMap<>();
-    public static List<Integer> board = new ArrayList<>();
+    //public static List<Integer> board = new ArrayList<>();
+    public static int[] board = new int[9];
 
     public static List<Integer> availableCells = new ArrayList<>();
 
     public static boolean gameFinished;
+
+    private static CheckResult checkResult = new CheckResult();
 
     enum GameStatus{
         PLAYING,DRAW,WINNER_X,WINNER_O
     }
 
     public static JLabel gameStatusLabel;
+    public static JLabel gameStatusLabel2;
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         JFrame frame = new JFrame("Tic Tak Tok");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(300, 400);
@@ -35,7 +42,7 @@ public class App {
         Font font2 = new Font(Font.SANS_SERIF,Font.BOLD,16);
         // Add 9 labels
         for (int i = 0; i < 9; i++) {
-            board.add(0);
+            board[i]=0;
             availableCells.add(i);
             JLabel label = new JLabel("Label " + i, SwingConstants.CENTER);
             label.setOpaque(true);
@@ -70,15 +77,19 @@ public class App {
         JButton resetButton = new JButton("reset");
         resetButton.addActionListener(e -> resetGame());
 
-        Panel topPanel = new Panel(new GridLayout(1,3,10,10));
+        Panel topPanel = new Panel(new GridLayout(1,4,10,10));
         JLabel xLabel = new JLabel("X", SwingConstants.CENTER);
         xLabel.setFont(font2);
         gameStatusLabel = new JLabel(GameStatus.PLAYING.toString(), SwingConstants.CENTER);
         gameStatusLabel.setFont(font2);
+        gameStatusLabel2 = new JLabel("", SwingConstants.CENTER);
+        gameStatusLabel2.setFont(font2);
+
         JLabel oLabel = new JLabel("O" ,SwingConstants.CENTER);
         oLabel.setFont(font2);
         topPanel.add(xLabel);
         topPanel.add(gameStatusLabel);
+        topPanel.add(gameStatusLabel2);
         topPanel.add(oLabel);
 
         // Add panel to frame
@@ -88,6 +99,8 @@ public class App {
         actionPanel.add(resetButton);
         frame.add(actionPanel,BorderLayout.SOUTH);
         frame.setVisible(true);
+        checkResult.init();
+        computerTurn();
     }
 
     public static SecureRandom secureRandom = new SecureRandom();
@@ -95,16 +108,30 @@ public class App {
         int level = availableCells.size();
         int random = secureRandom.nextInt(level);
         int cell = availableCells.get(random);
+        try {
+            int[] boardCopy = Arrays.copyOf(board, 9);
+            List<Result> resultList = checkResult.getPossibleTopResults(boardCopy,1,1);
+
+            if (resultList.size()>0) {
+                resultList.forEach(System.out::println);
+                System.out.println(resultList.size());
+                int r = secureRandom.nextInt(resultList.size());
+                cell = resultList.get(r).getDesiredCell();
+            }
+
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+
         setToBoard(cell,1);
     }
 
     public static void setToBoard(int cell, int xo){
-        board.set(cell,xo);
+        board[cell] = xo;
         JLabel label = labelMap.get(cell);
         String text = xo==1?"X":"O";
         label.setText(text);
         removeFromAvailableCells(cell);
-        System.out.println(board);
         checkGame(xo);
     }
 
@@ -133,6 +160,14 @@ public class App {
         if (availableCells.size()==0){
             gameOver(0);
         }
+
+        try {
+            List<Result> resultList = checkResult.getResult(board,1,1);
+            gameStatusLabel2.setText(String.valueOf(resultList.get(0).getResult()));
+            //System.out.println(Arrays.toString(resultList.get(0).getRow()));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static void gameOver(int xo){
@@ -146,17 +181,18 @@ public class App {
     }
 
     public static boolean checkLine(int c1, int c2, int c3){
-        return (!board.get(c1).equals(0)) && board.get(c1).equals(board.get(c2)) && board.get(c1).equals(board.get(c3));
+        return board[c1]!=0 && board[c1]==board[c2] && board[c1]==board[c3];
     }
 
     public static void resetGame(){
         labelMap.values().forEach(l->l.setText(""));
-        Collections.fill(board,0);
+        Arrays.fill(board,0);
         availableCells = new ArrayList<>();
         for (int i = 0; i < 9; i++) {
             availableCells.add(i);
         }
         gameFinished = false;
+        computerTurn();
     }
 
 }

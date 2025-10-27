@@ -3,7 +3,10 @@ package com.voznoi.app.generator;
 import javax.swing.*;
 import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class ResultGenerator {
     public List<Integer> board = new ArrayList<>();
@@ -85,11 +88,16 @@ public class ResultGenerator {
     }
 
     public static void main(String[] args) {
-        for (int i = 0; i < 50; i++) {
+        Set<String> stringSet = new HashSet<>();
+        for (int i = 0; i < 100000; i++) {
             ResultGenerator resultGenerator = new ResultGenerator();
             List<Integer> generate = resultGenerator.generate();
-            matrixPrint(generate);
+            String record = generate.stream().map(String::valueOf).collect(Collectors.joining(","));
+            stringSet.add(record);
+            //matrixPrint(generate);
         }
+        stringSet.forEach(System.out::println);
+        System.out.println(stringSet.size());
     }
 
     public static void matrixPrint(List<Integer> board){
