@@ -1,0 +1,15 @@
+@relation game_result
+
+@attribute c0 {0,1,2}
+@attribute c1 {0,1,2}
+@attribute c2 {0,1,2}
+@attribute c3 {0,1,2}
+@attribute c4 {0,1,2}
+@attribute c5 {0,1,2}
+@attribute c6 {0,1,2}
+@attribute c7 {0,1,2}
+@attribute c8 {0,1,2}
+
+@attribute programNumber {X_WIN,O_WIN,DRAW}
+
+@data
