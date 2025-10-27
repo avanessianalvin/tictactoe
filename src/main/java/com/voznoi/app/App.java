@@ -100,7 +100,7 @@ public class App {
         frame.add(actionPanel,BorderLayout.SOUTH);
         frame.setVisible(true);
         checkResult.init();
-        computerTurn();
+        //computerTurn();
     }
 
     public static SecureRandom secureRandom = new SecureRandom();
@@ -108,15 +108,27 @@ public class App {
         int level = availableCells.size();
         int random = secureRandom.nextInt(level);
         int cell = availableCells.get(random);
+        Result selectedResult=null;
         try {
             int[] boardCopy = Arrays.copyOf(board, 9);
             List<Result> resultList = checkResult.getPossibleTopResults(boardCopy,1,1);
-
+            List<Result> topResult2;
             if (resultList.size()>0) {
-                resultList.forEach(System.out::println);
-                System.out.println(resultList.size());
                 int r = secureRandom.nextInt(resultList.size());
-                cell = resultList.get(r).getDesiredCell();
+                selectedResult = resultList.get(r);
+            }
+            boardCopy[selectedResult==null?cell:selectedResult.getDesiredCell()]=1;
+            topResult2 = checkResult.getPossibleTopResults(boardCopy,2,1);
+            if (topResult2.size()>0){
+                Result result2 = topResult2.get(0);
+                System.out.println(result2);
+                System.out.println(selectedResult);
+                if (selectedResult== null || result2.getDistance()<=selectedResult.getDistance()){
+                    selectedResult = result2;
+                }
+            }
+            if (selectedResult!=null) {
+                cell = selectedResult.getDesiredCell();
             }
 
         }catch (Exception e){
@@ -192,7 +204,7 @@ public class App {
             availableCells.add(i);
         }
         gameFinished = false;
-        computerTurn();
+        //computerTurn();
     }
 
 }
