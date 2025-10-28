@@ -100,7 +100,7 @@ public class App {
         frame.add(actionPanel,BorderLayout.SOUTH);
         frame.setVisible(true);
         checkResult.init();
-        //computerTurn();
+        computerTurn();
     }
 
     public static SecureRandom secureRandom = new SecureRandom();
@@ -204,7 +204,7 @@ public class App {
             availableCells.add(i);
         }
         gameFinished = false;
-        //computerTurn();
+        computerTurn();
     }
 
 }
