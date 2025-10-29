@@ -1,17 +1,17 @@
 package com.voznoi.app;
 
-import com.voznoi.app.ai.CheckResult;
-import com.voznoi.app.ai.Result;
+import com.voznoi.app.ai.MindJ48;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.security.SecureRandom;
-import java.util.*;
 import java.util.List;
 import java.util.Timer;
+import java.util.*;
 
-public class App {
+public class AppJ48 {
     public static Map<Integer,JLabel> labelMap = new HashMap<>();
     //public static List<Integer> board = new ArrayList<>();
     public static int[] board = new int[9];
@@ -20,7 +20,9 @@ public class App {
 
     public static boolean gameFinished;
 
-    private static CheckResult checkResult = new CheckResult();
+    private static MindJ48 mindXJ48 = new MindJ48();
+    private static MindJ48 mindOJ48 = new MindJ48();
+
 
     enum GameStatus{
         PLAYING,DRAW,WINNER_X,WINNER_O
@@ -30,8 +32,14 @@ public class App {
     public static JLabel gameStatusLabel2;
 
     private static int swapXO (int xo){
+        if (xo==0) return 0;
         return (xo==1)?2:1;
     }
+
+    private static int[] swapBoard(int [] board){
+        return Arrays.stream(board).map(AppJ48::swapXO).toArray();
+    }
+
     public static void main(String[] args) throws Exception {
         JFrame frame = new JFrame("Tic Tak Tok");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -110,8 +118,10 @@ public class App {
         actionPanel.add(nextMoveButton);
         frame.add(actionPanel,BorderLayout.SOUTH);
         frame.setVisible(true);
-        checkResult.init();
-        computerTurn(1);
+        mindXJ48.init("./data/gameResultForXJ48.aarf");
+        mindOJ48.init("./data/gameResultForOJ48.aarf");
+        System.out.println("J48 created");
+        //computerTurn(1);
     }
 
     public static void startGame(){
@@ -132,33 +142,34 @@ public class App {
         int level = availableCells.size();
         int random = secureRandom.nextInt(level);
         int cell = availableCells.get(random);
-        Result selectedResult=null;
-        try {
-            int[] boardCopy = Arrays.copyOf(board, 9);
-            List<Result> resultList = checkResult.getPossibleTopResults(boardCopy,xo,1);
-            List<Result> topResult2;
-            if (resultList.size()>0) {
-                int r = secureRandom.nextInt(resultList.size());
-                selectedResult = resultList.get(r);
-            }
-            boardCopy[selectedResult==null?cell:selectedResult.getDesiredCell()]=1;
-            topResult2 = checkResult.getPossibleTopResults(boardCopy,swapXO(xo),1);
-            if (topResult2.size()>0){
-                Result result2 = topResult2.get(0);
-                System.out.println();
-                System.out.println("opponent: " + result2);
-                System.out.println("me: " + selectedResult);
-                if (selectedResult== null || result2.getDistance()<=selectedResult.getDistance()){
-                    selectedResult = result2;
+        if (availableCells.size()<9) {
+            try {
+                int[] boardCopy = Arrays.copyOf(board, 9);
+                int cellX = mindXJ48.getResult(boardCopy);
+                boardCopy[cellX] = xo;
+                if (availableCells.contains(cellX)){
+                    cell = cellX;
                 }
-            }
-            if (selectedResult!=null) {
-                cell = selectedResult.getDesiredCell();
-            }
+                int[] swappedBoard = swapBoard(boardCopy);
+                swappedBoard[cell] = swapXO(xo);
+                int cellO = mindXJ48.getResult(swappedBoard);
+                int[] boardCopyO = Arrays.copyOf(board, 9);
+                boardCopyO[cellO] = swapXO(xo);
+                System.out.println(Arrays.toString(board));
+                System.out.println(Arrays.toString(swappedBoard) + "   " +  checkGame(swappedBoard, swapXO(xo)));
+                if (availableCells.contains(cellO) && checkGame(swappedBoard, swapXO(xo))) {
+                    cell = cellO;
+                }
 
-        }catch (Exception e){
-            e.printStackTrace();
+                System.out.println(cell + "  " + cellO);
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
+        int finalCell = cell;
+        availableCells.removeIf(c->c.equals(finalCell));
+        System.out.println(availableCells);
 
         setToBoard(cell,xo);
     }
@@ -169,42 +180,43 @@ public class App {
         String text = xo==1?"X":"O";
         label.setText(text);
         removeFromAvailableCells(cell);
-        checkGame(xo);
+        if (availableCells.size()==0){
+            gameOver(0);
+        }
+        boolean game = checkGame(board, xo);
+        if (game){
+            gameOver(xo);
+        }
     }
 
     public static void removeFromAvailableCells(int i){
         availableCells.removeIf(c->c.equals(i));
     }
 
-    public static void checkGame(int xo){
+    public static boolean checkGame(int[] board, int xo){
         boolean[] g = new boolean[8];
-        g[0] = checkLine(0,1,2);
-        g[1] = checkLine(3,4,5);
-        g[2] = checkLine(6,7,8);
-        g[3] = checkLine(0,3,6);
-        g[4] = checkLine(1,4,7);
-        g[5] = checkLine(2,5,8);
-        g[6] = checkLine(0,4,8);
-        g[7] = checkLine(2,4,6);
+        g[0] = checkLine(board,0,1,2);
+        g[1] = checkLine(board,3,4,5);
+        g[2] = checkLine(board,6,7,8);
+        g[3] = checkLine(board,0,3,6);
+        g[4] = checkLine(board,1,4,7);
+        g[5] = checkLine(board,2,5,8);
+        g[6] = checkLine(board,0,4,8);
+        g[7] = checkLine(board,2,4,6);
 
         for (boolean b : g) {
             if (b) {
-                gameOver(xo);
-                return;
+                return true;
             }
         }
 
-        if (availableCells.size()==0){
-            gameOver(0);
-        }
-
         try {
-            List<Result> resultList = checkResult.getResult(board,1,1);
-            gameStatusLabel2.setText(String.valueOf(resultList.get(0).getResult()));
+            //gameStatusLabel2.setText(String.valueOf(resultList.get(0).getResult()));
             //System.out.println(Arrays.toString(resultList.get(0).getRow()));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+        return false;
     }
 
     public static void gameOver(int xo){
@@ -214,11 +226,12 @@ public class App {
             default -> GameStatus.DRAW.toString();
         };
         gameStatusLabel.setText(winner);
+        System.out.println(winner);
         gameFinished = true;
     }
 
-    public static boolean checkLine(int c1, int c2, int c3){
-        return board[c1]!=0 && board[c1]==board[c2] && board[c1]==board[c3];
+    public static boolean checkLine(int[] b, int c1, int c2, int c3){
+        return b[c1]!=0 && b[c1]==b[c2] && b[c1]==b[c3];
     }
 
     public static void resetGame(int xo){
@@ -229,8 +242,8 @@ public class App {
             availableCells.add(i);
         }
         gameFinished = false;
-        if (xo!=0)
-            computerTurn(xo);
+//        if (xo!=0)
+//            computerTurn(xo);
     }
 
 }
